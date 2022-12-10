@@ -3,8 +3,8 @@ const swaggerJsDoc = require('swagger-jsdoc');
 const swaggerUI = require('swagger-ui-express');
 const bodyParser = require('body-parser');
 const { dbConnector } = require('./lib/app/database/dbConnector.js');
-const { order } = require('./lib/app/models/orderDAO');
-const { book, bookDAO } = require('./lib/app/models/bookDAO');
+const { orderDAO } = require('./lib/app/models/orderDAO');
+const { bookDAO } = require('./lib/app/models/bookDAO');
 const app = express();
 const port = 3000
 const dbHost = "localhost"
@@ -191,7 +191,7 @@ app.post('/books/addBook', (req,res) => {
  app.put('/books/updateBook', (req,res) => {
     let book = new bookDAO(req.body.id, req.body.author, req.body.title, req.body.genre, req.body.cost, req.body.stock);
     let dao = new dbConnector(dbHost, dbPort, dbUsername, dbPassword);
-    dao.update(book, function(changes)
+    dao.updateBook(book, function(changes)
     {
         if(changes == 0)
             res.status(200).json({"error" : "Updating Album passed but nothing was changed"})
@@ -223,6 +223,153 @@ app.post('/books/addBook', (req,res) => {
             res.status(200).json({"error" : "Delete Book failed"})
         else
             res.status(200).json({"success" : "Delete Book passed"})
+    });
+});
+
+/**
+ * @swagger
+ * /orders:
+ *      get:
+ *          description: Get all orders
+ *          responses:
+ *              200:
+ *                  description: Success, found orders
+ */
+ app.get('/orders', (req, res) => {
+    let dao = new dbConnector(dbHost, dbPort, dbUsername, dbPassword);
+    dao.findAllOrders(function(orders)
+    {
+        res.json(orders);
+    });
+});
+
+/**
+ * @swagger
+ * /orders/id/{id}:
+ *      get:
+ *          description: Get all orders by id
+ *          parameters:
+ *            - name: id
+ *              description: Id of order
+ *              in: path
+ *              required: true
+ *              type: integer
+ *          responses:
+ *              200:
+ *                  description: Success, found orders
+ */
+ app.get('/orders/id/:id', (req, res) => {
+    let dao = new dbConnector(dbHost, dbPort, dbUsername, dbPassword);
+    dao.findOrderById(req.params.id, function(orders)
+    {
+        res.json(orders);
+    });
+});
+
+/**
+ * @swagger
+ * /orders/customer/{name}:
+ *      get:
+ *          description: Get all orders by customer name
+ *          parameters:
+ *            - name: name
+ *              description: Name of customer
+ *              in: path
+ *              required: true
+ *              type: string
+ *          responses:
+ *              200:
+ *                  description: Success, found orders
+ */
+ app.get('/orders/customer/:name', (req, res) => {
+    let dao = new dbConnector(dbHost, dbPort, dbUsername, dbPassword);
+    dao.findOrdersByCustomer(req.params.name, function(orders)
+    {
+        res.json(orders);
+    });
+});
+
+/**
+ * @swagger
+ * /orders/addOrder:
+ *      post:
+ *          description: Create new order
+ *          consumes:
+ *            - application/json
+ *          parameters:
+ *            - in: body
+ *              name: New order
+ *              description: The order to create
+ *              required: true
+ *              type: object
+ *          responses:
+ *              201:
+ *                  description: Order created
+ */
+ app.post('/orders/addOrder', (req,res) => {
+    let order = new orderDAO(-1, req.body.customerName, req.body.cost, req.body.books);
+    let dao = new dbConnector(dbHost, dbPort, dbUsername, dbPassword);
+    dao.createOrder(order, function(orderId)
+    {
+        if(orderId == -1)
+            res.status(200).json({"error" : "Creating Order failed"})
+        else
+            res.status(200).json({"success" : "Creating Order passed with an Order ID of " + orderId});
+    })
+});
+
+/**
+ * @swagger
+ * /orders/updateOrder:
+ *      put:
+ *          description: Update Order
+ *          consumes:
+ *            - application/json
+ *          parameters:
+ *            - in: body
+ *              name: Update Order
+ *              description: Update the order
+ *              required: true
+ *              type: object
+ *          responses:
+ *              201:
+ *                  description: Order updated
+ */
+ app.put('/orders/updateOrder', (req,res) => {
+    let order = new orderDAO(req.body.id, req.body.customerName, req.body.cost, req.body.books);
+    let dao = new dbConnector(dbHost, dbPort, dbUsername, dbPassword);
+    dao.updateOrder(order, function(changes)
+    {
+        if(changes == 0)
+            res.status(200).json({"error" : "Updating Order passed but nothing was changed"})
+        else
+            res.status(200).json({"success" : "Updating Order passed and data was changed"});
+    }); 
+});
+
+/**
+ * @swagger
+ *  /orders/deleteOrder/{id}:
+ *      delete:
+ *          description: Delete orders by id
+ *          parameters:
+ *            - name: id
+ *              description: Id of order to delete
+ *              in: path
+ *              required: true
+ *              type: integer
+ *          responses:
+ *              200:
+ *                  description: Success, deleted order
+ */
+ app.delete('/orders/deleteOrder/:id', (req,res) => {
+    let dao = new dbConnector(dbHost, dbPort, dbUsername, dbPassword);
+    dao.deleteOrderById(req.params.id, function(changes)
+    {
+        if(changes == 0)
+            res.status(200).json({"error" : "Delete Order failed"})
+        else
+            res.status(200).json({"success" : "Delete Order passed"})
     });
 });
 
